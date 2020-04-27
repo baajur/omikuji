@@ -12,14 +12,6 @@ steps:
     displayName: 'Choose default Python binary'
     condition: succeeded()
 
-  - task: BatchScript@1
-    displayName: 'VsDevCmd.bat'
-    inputs:
-      filename: C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\Common7\\Tools\\VsDevCmd.bat
-      arguments: -no_logo -arch=x64
-      modifyEnvironment: true
-    condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
   - bash: |
       set -e
 
@@ -113,7 +105,20 @@ steps:
   - script: |
       "$(pybin)" -m pip -vvv wheel . -w wheelhouse/
     displayName: 'Build wheels'
-    condition: and(succeeded(), ne(${{ parameters.sdist }}, 'true'))
+    condition: and(succeeded(), ne(${{ parameters.sdist }}, 'true'), ne(variables['Agent.OS'], 'Windows_NT'))
+
+  - script: |
+      @echo on
+      dir  "C:\Program Files (x86)\Microsoft Visual Studio\2017\"
+      dir  "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise"
+      dir  "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7"
+      dir  "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\"
+      dir  "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\VsDevCmd.bat"
+      set VSCMD_DEBUG=3
+      call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+      "$(pybin)" -m pip -vvv wheel . -w wheelhouse/
+    displayName: 'Build wheels (Windows)'
+    condition: and(succeeded(), ne(${{ parameters.sdist }}, 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
 
   - bash: |
       set -e -x
